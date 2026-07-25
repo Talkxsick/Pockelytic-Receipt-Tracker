@@ -4,10 +4,14 @@ so plain SQL keeps it easy to read and easy to inspect with any SQLite
 browser if you want to poke at the data yourself.
 """
 import json
+import os
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "expenses.db"
+# Locally this just lives next to the code. In production (Railway/Render),
+# set DB_PATH to a path inside a mounted persistent volume (e.g. /data/expenses.db)
+# -- otherwise the database resets on every redeploy/restart.
+DB_PATH = Path(os.environ.get("DB_PATH", str(Path(__file__).parent / "expenses.db")))
 
 CATEGORIES = [
     "Groceries", "Dining", "Transport", "Shopping",

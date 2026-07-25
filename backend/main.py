@@ -1,7 +1,12 @@
 import json
+import os
 from collections import defaultdict
 from datetime import datetime
 from typing import Optional
+
+from dotenv import load_dotenv
+
+load_dotenv()  # reads backend/.env if present, so GEMINI_API_KEY only needs to be set once
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,9 +21,15 @@ from smart_alerts import compute_budget_status, compute_deadlines, detect_price_
 
 app = FastAPI(title="Receipt Scanner API")
 
+# Locally this defaults to allowing everything. In production, set
+# ALLOWED_ORIGINS to your Vercel URL (comma-separated if you have more
+# than one, e.g. preview + production) to lock this down.
+_origins_env = os.environ.get("ALLOWED_ORIGINS")
+allowed_origins = [o.strip() for o in _origins_env.split(",")] if _origins_env else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # local single-user app; tighten if you deploy this
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -367,4 +378,7 @@ def export_pdf(scope: str = "all"):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    # reload=True is a local dev convenience; Railway/Render run this as a
+    # single production process, so it's harmless but unnecessary there.
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=port == 8000)

@@ -1,4 +1,9 @@
-const BASE = "/api";
+// Locally, Vite's dev proxy (vite.config.js) forwards "/api" to localhost:8000.
+// In production on Vercel, there's no such proxy, so this needs to point at
+// your deployed backend instead -- set VITE_API_BASE_URL as an environment
+// variable in your Vercel project settings, e.g.
+// "https://your-backend.up.railway.app/api"
+const BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 async function handle(res) {
   if (!res.ok) {
