@@ -12,12 +12,20 @@ notice months too late:
 - **Return & warranty deadlines** — surfaces purchases whose return
   window or manufacturer warranty is about to close
 
+...plus a layer of tools for actually acting on that data: **budgets**
+with over/close alerts, a **savings goal** tracker, **tax-deductible**
+flagging with CSV/PDF **export**, and **merchant insights** showing
+where your money quietly concentrates.
+
 ```
-receipt-tracker/
+pocketalyst/
 ├── backend/          FastAPI + Gemini vision + SQLite
 │   ├── main.py
 │   ├── database.py
 │   ├── receipt_processor.py
+│   ├── smart_alerts.py      # price watch, subscriptions, deadlines, budgets
+│   ├── features.py          # deductible summary, merchant insights, savings progress
+│   ├── reports.py           # CSV/PDF export
 │   └── requirements.txt
 └── frontend/          React (Vite) dashboard
     └── src/
@@ -30,9 +38,25 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
 
-export GEMINI_API_KEY=...       # Windows: set GEMINI_API_KEY=...
+**Set your API key once, permanently** — copy `.env.example` to `.env`
+in the `backend/` folder and put your real key in it:
 
+```
+GEMINI_API_KEY=your-actual-key-here
+```
+
+(Windows: `copy .env.example .env` then edit it in Notepad; Mac/Linux:
+`cp .env.example .env`.) The app loads this file automatically on
+startup, so you never need to `export`/`set` the key in your terminal
+again — it works the same way every time you open the project, in any
+terminal. `.env` is already gitignored, so the key won't get committed
+if you push this to git.
+
+Then just run:
+
+```bash
 python main.py
 ```
 
@@ -47,6 +71,23 @@ card required. The receipt-reading call uses `gemini-2.5-flash`, which
 is on Gemini's free tier (rate-limited, but plenty for personal use —
 check current limits at ai.google.dev/gemini-api/docs/pricing since
 Google adjusts them periodically).
+
+<details>
+<summary>Prefer setting it as a real environment variable instead?</summary>
+
+If you'd rather not use a `.env` file, you can set `GEMINI_API_KEY`
+permanently at the OS level so every new terminal already has it,
+without a `.env` file:
+
+- **Windows (PowerShell):**
+  `[Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key", "User")`
+  then close and reopen your terminal.
+- **Mac/Linux:** add `export GEMINI_API_KEY=your-key` to `~/.zshrc` or
+  `~/.bashrc`, then run `source ~/.zshrc` (or open a new terminal).
+
+If both a `.env` file and a real environment variable are set, the
+real environment variable wins.
+</details>
 
 ## 2. Frontend setup
 
@@ -93,6 +134,33 @@ exposed via `GET /api/smart-insights`.
   any that are closing within the next 1–3 weeks. These are simple
   fixed rules, not store-specific policies — treat them as a nudge to
   double-check, not a guarantee.
+
+## The four "make it more useful" features
+
+- **Export & reports** — go to the **Export** section, pick a period
+  (all time / a year / a month), and download a CSV (for
+  spreadsheets) or a PDF (for printing/filing). Both include a
+  Tax-deductible column so a report doubles as backup for a tax
+  filing.
+- **Tax-deductible flagging** — go to **Settings** to turn on
+  deductible-by-default for whole categories (e.g. Transport for a
+  freelancer). Any individual line item on a receipt can still be
+  overridden with its own toggle, which always wins over the category
+  default — click it to cycle default → deductible → not deductible →
+  back to default.
+- **Savings goal** — set one active goal (name, target amount, target
+  date) under **Savings goal**, then log contributions as you save.
+  The progress bar and "on track / behind pace" indicator are driven
+  by your actual logged contributions and the time remaining, not a
+  guess from your spending.
+- **Merchant insights** — the **Merchants** section ranks every place
+  you've scanned a receipt from by total spent, visit count, and
+  average per visit — the "you've spent $340 at Starbucks across 42
+  visits" number that's hard to add up in your head.
+
+All four read/write the same SQLite file as everything else — no new
+services, no extra setup beyond the one `pip install` for the new
+`fpdf2` dependency (PDF export).
 
 ## How the AI part works
 

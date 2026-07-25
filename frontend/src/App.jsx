@@ -3,13 +3,26 @@ import Sidebar from "./components/Sidebar.jsx";
 import TopBar from "./components/TopBar.jsx";
 import UploadReceipt from "./components/UploadReceipt.jsx";
 import ReceiptTape from "./components/ReceiptTape.jsx";
+import ReceiptFilterTabs from "./components/ReceiptFilterTabs.jsx";
 import MonthlyChart from "./components/MonthlyChart.jsx";
 import MonthlyVariationChart from "./components/MonthlyVariationChart.jsx";
 import CategoryPieChart from "./components/CategoryPieChart.jsx";
 import SmartAlerts from "./components/SmartAlerts.jsx";
 import BudgetSettings from "./components/BudgetSettings.jsx";
 import BudgetStatus from "./components/BudgetStatus.jsx";
-import { fetchReceipts, fetchExpenses, fetchInsights, fetchSmartInsights, deleteReceipt } from "./api.js";
+import SavingsGoal from "./components/SavingsGoal.jsx";
+import MerchantInsights from "./components/MerchantInsights.jsx";
+import ExportPanel from "./components/ExportPanel.jsx";
+import Settings from "./components/Settings.jsx";
+import {
+  fetchReceipts,
+  fetchExpenses,
+  fetchInsights,
+  fetchSmartInsights,
+  fetchDeductibleCategories,
+  setExpenseDeductible,
+  deleteReceipt,
+} from "./api.js";
 
 function receiptMatchesSearch(receipt, query) {
   if (!query) return true;
@@ -23,24 +36,35 @@ function receiptMatchesSearch(receipt, query) {
   }
 }
 
+function resolveDeductible(item, deductibleDefaults) {
+  if (item.deductible === null || item.deductible === undefined) {
+    return !!deductibleDefaults[item.category];
+  }
+  return !!item.deductible;
+}
+
 export default function App() {
   const [receipts, setReceipts] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [insights, setInsights] = useState(null);
   const [smart, setSmart] = useState(null);
+  const [deductibleDefaults, setDeductibleDefaults] = useState({});
   const [search, setSearch] = useState("");
+  const [filterTab, setFilterTab] = useState("all");
 
   async function refresh() {
-    const [r, e, i, s] = await Promise.all([
+    const [r, e, i, s, d] = await Promise.all([
       fetchReceipts(),
       fetchExpenses(),
       fetchInsights(),
       fetchSmartInsights(),
+      fetchDeductibleCategories(),
     ]);
     setReceipts(r);
     setExpenses(e);
     setInsights(i);
     setSmart(s);
+    setDeductibleDefaults(d);
   }
 
   useEffect(() => {
@@ -52,10 +76,31 @@ export default function App() {
     refresh();
   }
 
-  const filteredReceipts = useMemo(
-    () => receipts.filter((r) => receiptMatchesSearch(r, search)),
-    [receipts, search]
-  );
+  async function handleToggleDeductible(expenseId, value) {
+    await setExpenseDeductible(expenseId, value);
+    refresh();
+  }
+
+  const itemsByReceipt = useMemo(() => {
+    const map = {};
+    for (const e of expenses) {
+      (map[e.receipt_id] ||= []).push(e);
+    }
+    return map;
+  }, [expenses]);
+
+  const filteredReceipts = useMemo(() => {
+    const currentMonth = insights?.current_month;
+    return receipts.filter((r) => {
+      if (!receiptMatchesSearch(r, search)) return false;
+      if (filterTab === "month" && currentMonth) return r.date.startsWith(currentMonth);
+      if (filterTab === "deductible") {
+        const items = itemsByReceipt[r.id] || [];
+        return items.some((item) => resolveDeductible(item, deductibleDefaults));
+      }
+      return true;
+    });
+  }, [receipts, search, filterTab, insights, itemsByReceipt, deductibleDefaults]);
 
   const alertCount =
     (insights?.alerts.length || 0) +
@@ -72,6 +117,8 @@ export default function App() {
           onSearchChange={setSearch}
           alertCount={alertCount}
           onBellClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          monthLabel={insights?.current_month}
+          monthTotal={insights?.current_month_total}
         />
 
         <header className="app-header" id="overview">
@@ -131,6 +178,11 @@ export default function App() {
           {smart && <BudgetStatus rows={smart.budget_status} />}
         </div>
 
+        <h2 className="section-title" id="goals">
+          Savings goal
+        </h2>
+        <SavingsGoal />
+
         <h2 className="section-title">Monthly spend</h2>
         {insights && <MonthlyChart monthly={insights.monthly} />}
 
@@ -144,20 +196,43 @@ export default function App() {
           <SmartAlerts smart={smart} />
         </div>
 
+        <h2 className="section-title" id="merchants">
+          Merchant insights
+        </h2>
+        <MerchantInsights />
+
         <h2 className="section-title" id="receipts">
           Recent receipts
         </h2>
+        <ReceiptFilterTabs active={filterTab} onChange={setFilterTab} />
         <div className="tape-list">
           {filteredReceipts.length === 0 && receipts.length === 0 && (
             <div className="empty-state">No receipts yet — scan your first one above.</div>
           )}
           {filteredReceipts.length === 0 && receipts.length > 0 && (
-            <div className="empty-state">No receipts match "{search}".</div>
+            <div className="empty-state">No receipts match this filter.</div>
           )}
           {filteredReceipts.map((r) => (
-            <ReceiptTape key={r.id} receipt={r} onDelete={handleDelete} />
+            <ReceiptTape
+              key={r.id}
+              receipt={r}
+              items={itemsByReceipt[r.id] || []}
+              deductibleDefaults={deductibleDefaults}
+              onDelete={handleDelete}
+              onToggleDeductible={handleToggleDeductible}
+            />
           ))}
         </div>
+
+        <h2 className="section-title" id="export">
+          Export &amp; reports
+        </h2>
+        <ExportPanel expenses={expenses} />
+
+        <h2 className="section-title" id="settings">
+          Settings
+        </h2>
+        <Settings onSaved={refresh} />
       </main>
     </div>
   );

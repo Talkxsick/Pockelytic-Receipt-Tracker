@@ -12,3 +12,12 @@ export const CATEGORY_COLORS = {
 export function categoryColor(category) {
   return CATEGORY_COLORS[category] || CATEGORY_COLORS.Other;
 }
+
+const AVATAR_PALETTE = Object.values(CATEGORY_COLORS);
+
+export function avatarColor(name) {
+  const str = name || "?";
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
