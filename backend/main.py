@@ -22,14 +22,19 @@ from smart_alerts import compute_budget_status, compute_deadlines, detect_price_
 app = FastAPI(title="Receipt Scanner API")
 
 # Locally this defaults to allowing everything. In production, set
-# ALLOWED_ORIGINS to your Vercel URL (comma-separated if you have more
-# than one, e.g. preview + production) to lock this down.
+# ALLOWED_ORIGINS to your exact production Vercel URL. Vercel also
+# generates a brand-new URL for every preview deployment (per branch/
+# commit), which won't match a fixed list -- for those, set
+# ALLOWED_ORIGIN_REGEX to a pattern matching any of your project's
+# deployments, e.g. ^https://pockelytic-.*\.vercel\.app$
 _origins_env = os.environ.get("ALLOWED_ORIGINS")
 allowed_origins = [o.strip() for o in _origins_env.split(",")] if _origins_env else ["*"]
+allowed_origin_regex = os.environ.get("ALLOWED_ORIGIN_REGEX")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allowed_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -373,6 +378,45 @@ def export_pdf(scope: str = "all"):
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="pocketalyst-{scope}.pdf"'},
     )
+
+
+RESET_TARGET_TABLES = {
+    "receipts": ["expenses", "receipts"],  # expenses first: has a FK on receipts
+    "budgets": ["budgets"],
+    "savings": ["savings_contributions", "savings_goal"],
+    "settings": ["settings"],  # deductible-category defaults
+}
+
+
+class ResetInput(BaseModel):
+    targets: list[str]  # any subset of RESET_TARGET_TABLES keys
+    confirm: str  # must be exactly "RESET" -- a safety check against accidental calls
+
+
+@app.get("/api/reset-targets")
+def list_reset_targets():
+    """What the Settings UI can offer to wipe -- kept server-side so the
+    frontend never has to hardcode table names."""
+    return list(RESET_TARGET_TABLES.keys())
+
+
+@app.post("/api/reset")
+def reset_data(body: ResetInput):
+    if body.confirm != "RESET":
+        raise HTTPException(status_code=400, detail='Send {"confirm": "RESET"} to proceed.')
+    if not body.targets:
+        raise HTTPException(status_code=400, detail="No targets specified.")
+    unknown = [t for t in body.targets if t not in RESET_TARGET_TABLES]
+    if unknown:
+        raise HTTPException(status_code=400, detail=f"Unknown reset target(s): {unknown}")
+
+    db = get_db()
+    for target in body.targets:
+        for table in RESET_TARGET_TABLES[target]:
+            db.execute(f"DELETE FROM {table}")
+    db.commit()
+    db.close()
+    return {"status": "reset", "targets": body.targets}
 
 
 if __name__ == "__main__":

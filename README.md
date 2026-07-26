@@ -182,18 +182,8 @@ sensitive. If you outgrow it, enabling billing on the same project
 switches you to paid, non-training-data usage without any code
 changes.
 
-## Notes on deploying it live
+## Deploying it live
 
-This runs entirely locally by default. To put it on a free tier like
-Railway or Render:
-
-- Deploy `backend/` as a Python web service; set `GEMINI_API_KEY`
-  as an environment variable in that platform's dashboard (never
-  commit it to git).
-- SQLite works fine for a low-traffic personal demo, but most
-  platforms' filesystems are ephemeral on redeploy — for a persistent
-  demo, swap `database.py` for a hosted Postgres instance (a handful
-  of `sqlite3` calls would need to become `psycopg`/SQLAlchemy calls).
-- Deploy `frontend/` as a static build (`npm run build` → the `dist/`
-  folder) and point its API calls at the backend's public URL instead
-  of the local Vite proxy.
+Full step-by-step instructions (Vercel for the frontend, Railway/Render
+for the backend, including making SQLite persist and locking down
+CORS) are in **[DEPLOYMENT.md](./DEPLOYMENT.md)**.

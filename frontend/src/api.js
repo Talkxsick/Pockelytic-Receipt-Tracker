@@ -145,3 +145,14 @@ export async function deleteContribution(id) {
 export function exportUrl(format, scope) {
   return `${BASE}/export/${format}?scope=${encodeURIComponent(scope)}`;
 }
+
+// ---------- reset ----------
+
+export async function resetData(targets) {
+  const res = await fetch(`${BASE}/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ targets, confirm: "RESET" }),
+  });
+  return handle(res);
+}
