@@ -125,7 +125,7 @@ body {
   gap: 6px;
 }
 
-.sidebar-nav button {
+.sidebar-nav a {
   width: 42px;
   height: 42px;
   display: flex;
@@ -136,14 +136,15 @@ body {
   border-radius: 13px;
   color: var(--sidebar-text-dim);
   cursor: pointer;
+  text-decoration: none;
 }
 
-.sidebar-nav button:hover {
+.sidebar-nav a:hover {
   background: rgba(232, 98, 61, 0.1);
   color: var(--ink);
 }
 
-.sidebar-nav button.active {
+.sidebar-nav a.active {
   background: var(--orange);
   color: #fff;
   box-shadow: 0 4px 12px rgba(232, 98, 61, 0.35);
@@ -1136,26 +1137,124 @@ body {
   color: var(--ink-soft);
 }
 
+/* ---------- bottom tab bar (mobile only) ---------- */
+
+.bottom-nav {
+  display: none;
+}
+
 /* ---------- responsive ---------- */
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
+  #root {
+    padding: 16px 14px 84px;
+  }
+
   .app-shell {
-    flex-direction: column;
+    display: block;
   }
 
+  /* icon rail is replaced by the bottom tab bar on mobile */
   .sidebar {
-    width: 100%;
-    position: static;
-    flex-direction: row;
-    justify-content: center;
-    overflow-x: auto;
+    display: none;
   }
 
-  .sidebar-nav {
-    flex-direction: row;
+  .app-main {
+    width: 100%;
+  }
+
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    background: var(--white);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(34, 32, 27, 0.08);
+    padding: 8px max(8px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 4px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--ink-soft);
+  }
+
+  .bottom-nav a span {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 10px;
+  }
+
+  .bottom-nav a.active {
+    color: var(--orange-dark);
+  }
+
+  .app-header {
+    margin-bottom: 16px;
+  }
+
+  .app-title {
+    font-size: 22px;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .topbar-search {
+    order: 1;
+    flex: 1 1 100%;
+  }
+
+  .topbar-chip {
+    order: 2;
+    flex: 1;
+  }
+
+  .topbar-bell {
+    order: 3;
   }
 
   .stat-strip {
     grid-template-columns: 1fr;
+  }
+
+  .goal-stats-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tape-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chart-card {
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    margin: 28px 0 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .goal-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-nav a span {
+    display: none;
   }
 }

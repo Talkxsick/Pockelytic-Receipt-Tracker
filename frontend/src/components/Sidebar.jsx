@@ -1,34 +1,9 @@
-import { useState } from "react";
-import {
-  LayoutGrid,
-  Receipt,
-  PiggyBank,
-  TrendingUp,
-  ScanLine,
-  Flame,
-  Target,
-  Store,
-  Download,
-  Settings as SettingsIcon,
-} from "lucide-react";
-
-const NAV_ITEMS = [
-  { id: "overview", label: "Overview", icon: LayoutGrid },
-  { id: "budgets", label: "Budgets", icon: PiggyBank },
-  { id: "goals", label: "Savings goal", icon: Target },
-  { id: "watch", label: "Smart watch", icon: TrendingUp },
-  { id: "merchants", label: "Merchants", icon: Store },
-  { id: "receipts", label: "Receipts", icon: Receipt },
-  { id: "export", label: "Export", icon: Download },
-  { id: "settings", label: "Settings", icon: SettingsIcon },
-];
-
-function scrollToSection(id) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
+import { ScanLine, Flame } from "lucide-react";
+import { Link, useRouter } from "../router.jsx";
+import { NAV_ITEMS } from "../navItems.js";
 
 export default function Sidebar({ onScan }) {
-  const [active, setActive] = useState("overview");
+  const { path } = useRouter();
 
   return (
     <aside className="sidebar">
@@ -41,18 +16,10 @@ export default function Sidebar({ onScan }) {
       </button>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            className={active === id ? "active" : ""}
-            title={label}
-            onClick={() => {
-              setActive(id);
-              scrollToSection(id);
-            }}
-          >
+        {NAV_ITEMS.map(({ path: itemPath, label, icon: Icon }) => (
+          <Link key={itemPath} to={itemPath} className={path === itemPath ? "active" : ""} title={label}>
             <Icon size={18} strokeWidth={2} />
-          </button>
+          </Link>
         ))}
       </nav>
     </aside>
